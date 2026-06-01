@@ -20,7 +20,94 @@ EXPECTED_COLUMNS = [
     "TrainingTimesLastYear", "WorkLifeBalance", "YearsAtCompany",
     "YearsInCurrentRole", "YearsSinceLastPromotion", "YearsWithCurrManager"
 ]
+import streamlit as pd
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 
+# ==========================================
+# 1. PAGE CONFIGURATION & SETUP
+# ==========================================
+st.set_page_config(
+    page_title="Advanced Talent Analytics Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Generate Mock Data matching the requirements
+@st.cache_data
+def load_mock_data():
+    np.random.seed(42)
+    n_employees = 1470
+    
+    departments = ['Research & Development', 'Sales', 'Human Resources']
+    roles = {
+        'Research & Development': ['Laboratory Technician', 'Manufacturing Director', 'Research Director', 'Research Scientist', 'Healthcare Representative'],
+        'Sales': ['Sales Executive', 'Sales Representative', 'Manager'],
+        'Human Resources': ['Human Resources', 'Manager']
+    }
+    clusters = ['Fast Trackers', 'Steady Growth', 'Stagnant / Plateaued', 'Recent Onboard']
+    
+    emp_data = []
+    for i in range(n_employees):
+        dept = np.random.choice(departments, p=[0.65, 0.30, 0.05])
+        role = np.random.choice(roles[dept])
+        cluster = np.random.choice(clusters, p=[0.20, 0.50, 0.15, 0.15])
+        
+        # Logic adjustment based on cluster type
+        if cluster == 'Stagnant / Plateaued':
+            years_since_promotion = np.random.randint(5, 12)
+            years_at_company = np.random.randint(6, 15)
+        elif cluster == 'Fast Trackers':
+            years_since_promotion = np.random.randint(0, 2)
+            years_at_company = np.random.randint(1, 5)
+        else:
+            years_since_promotion = np.random.randint(0, 5)
+            years_at_company = np.random.randint(1, 10)
+            
+        emp_data.append({
+            'EmployeeID': f"EMP-{1000+i}",
+            'Department': dept,
+            'JobRole': role,
+            'CareerStage': np.random.choice(['Early Career', 'Mid Level', 'Senior Leadership'], p=[0.4, 0.4, 0.2]),
+            'CareerCluster': cluster,
+            'YearsSinceLastPromotion': years_since_promotion,
+            'YearsAtCompany': years_at_company,
+            'ManagerID': f"MGR-{np.random.randint(1, 15):02d}",
+            'ManagerTenure': np.random.randint(2, 10),
+            'PerformanceRating': np.random.choice([2, 3, 4], p=[0.15, 0.70, 0.15])
+        })
+        
+    return pd.DataFrame(emp_data)
+
+df = load_mock_data()
+
+# ==========================================
+# 2. GLOBAL SIDEBAR FILTERS
+# ==========================================
+st.sidebar.title("Dashboard Global Filters")
+st.sidebar.markdown("---")
+
+selected_dept = st.sidebar.multiselect(
+    "Filter by Department", 
+    options=df['Department'].unique(), 
+    default=df['Department'].unique()
+)
+
+filtered_roles = df[df['Department'].isin(selected_dept)]['JobRole'].unique() if selected_dept else []
+selected_role = st.sidebar.multiselect(
+    "Filter by Job Role", 
+    options=filtered_roles, 
+    default=filtered_roles
+)
+
+selected_stage = st.sidebar.multiselect(
+    "Filter by Career Stage", 
+    options=df['CareerStage'].unique(), 
+    default=df['CareerStage'].unique()
+)
 st.markdown(
     """
     <style>
